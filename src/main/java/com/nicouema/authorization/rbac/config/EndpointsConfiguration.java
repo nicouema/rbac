@@ -4,9 +4,11 @@ import com.nicouema.authorization.rbac.annotation.AuthenticationRequired;
 import com.nicouema.authorization.rbac.annotation.AuthorizationRequired;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -53,7 +55,7 @@ public class EndpointsConfiguration implements ApplicationListener<ContextRefres
     private volatile boolean initialized = false;
 
     @Override
-    public void onApplicationEvent(ContextRefreshedEvent event) {
+    public void onApplicationEvent(@NonNull ContextRefreshedEvent event) {
         // Guard against multiple fires (e.g. child contexts in Spring MVC)
         if (initialized) return;
         initialized = true;
@@ -71,27 +73,29 @@ public class EndpointsConfiguration implements ApplicationListener<ContextRefres
             Map<String, Set<String>> authzMap = new HashMap<>();
 
             allMethods.forEach((info, handlerMethod) -> {
+                // Use AnnotationUtils.findAnnotation so annotations declared on interfaces
+                // (or their methods) are also discovered when a class merely implements them.
                 boolean isAuthRequired =
-                        handlerMethod.hasMethodAnnotation(AuthenticationRequired.class)
-                        || handlerMethod.getBeanType().isAnnotationPresent(AuthenticationRequired.class);
+                        AnnotationUtils.findAnnotation(handlerMethod.getMethod(), AuthenticationRequired.class) != null
+                        || AnnotationUtils.findAnnotation(handlerMethod.getBeanType(), AuthenticationRequired.class) != null;
 
                 // Method-level annotation overrides class-level
-                AuthorizationRequired authzAnnotation =
-                        handlerMethod.getMethodAnnotation(AuthorizationRequired.class);
-                if (authzAnnotation == null) {
-                    authzAnnotation = handlerMethod.getBeanType()
-                            .getAnnotation(AuthorizationRequired.class);
+                AuthorizationRequired authAnnotation =
+                        AnnotationUtils.findAnnotation(handlerMethod.getMethod(), AuthorizationRequired.class);
+                if (authAnnotation == null) {
+                    authAnnotation = AnnotationUtils.findAnnotation(
+                            handlerMethod.getBeanType(), AuthorizationRequired.class);
                 }
 
                 Set<String> paths = resolvePaths(info);
                 if (paths.isEmpty()) return;
 
-                if (isAuthRequired || authzAnnotation != null) {
+                if (isAuthRequired || authAnnotation != null) {
                     authRequiredPaths.addAll(paths);
                 }
 
-                if (authzAnnotation != null) {
-                    for (String authority : authzAnnotation.allowedAuthorities()) {
+                if (authAnnotation != null) {
+                    for (String authority : authAnnotation.allowedAuthorities()) {
                         authzMap.computeIfAbsent(authority, k -> new HashSet<>()).addAll(paths);
                     }
                 }

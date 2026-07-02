@@ -1,5 +1,7 @@
 package com.nicouema.authorization.rbac.config;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -10,6 +12,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * rbac.jwt.expiration-ms=86400000   # 24 h
  * </pre>
  */
+@Setter
+@Getter
 @ConfigurationProperties(prefix = "rbac.jwt")
 public class JwtProperties {
 
@@ -23,19 +27,4 @@ public class JwtProperties {
     /** Token validity duration in milliseconds. Defaults to 24 hours. */
     private long expirationMs = 86_400_000L;
 
-    public String getSecret() {
-        return secret;
-    }
-
-    public void setSecret(String secret) {
-        this.secret = secret;
-    }
-
-    public long getExpirationMs() {
-        return expirationMs;
-    }
-
-    public void setExpirationMs(long expirationMs) {
-        this.expirationMs = expirationMs;
-    }
 }

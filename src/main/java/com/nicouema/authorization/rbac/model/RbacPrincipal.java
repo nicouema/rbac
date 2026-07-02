@@ -1,49 +1,51 @@
 package com.nicouema.authorization.rbac.model;
 
-import java.util.Collections;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.jspecify.annotations.Nullable;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import java.util.List;
+import java.util.stream.Collectors;
+
 
 /**
- * Immutable principal stored in the {@code SecurityContext} after JWT validation.
+ * Lightweight {@link RbacUser} built purely from JWT claims — no database call.
  *
- * <p>Used when no {@link com.nicouema.authorization.rbac.service.RbacUserDetailsService}
- * bean is present — built purely from JWT claims with no database call.</p>
- *
+ * <p>Used as the {@code SecurityContext} principal when the consuming project does
+ * <em>not</em> register a
+ * {@link com.nicouema.authorization.rbac.service.RbacUserDetailsService} bean.
+ * In controllers use:</p>
  * <pre>{@code
- * @GetMapping("/me")
+ * @AuthenticationRequired
  * public ResponseEntity<?> me(@AuthenticationPrincipal RbacPrincipal principal) {
- *     String email          = principal.getEmail();
- *     List<String> roles    = principal.getAuthorities();
+ *     String id          = principal.getId();
+ *     List<String> roles = principal.getAuthorityNames();
  * }
  * }</pre>
  */
-public final class RbacPrincipal {
+@RequiredArgsConstructor
+@Getter
+@Setter
+public final class RbacPrincipal implements RbacUser {
 
-    private final String email;
-    private final List<String> authorities;
+    private final String username;
+    private final List<SimpleGrantedAuthority> authorities;
 
-    private RbacPrincipal(String email, List<String> authorities) {
-        this.email = email;
-        this.authorities = authorities;
+    /** Convenience method: authority names as plain strings. */
+    public List<String> getAuthorityNames() {
+        return authorities.stream()
+                .map(SimpleGrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
     }
 
-    public static RbacPrincipal of(String email, List<String> authorities) {
-        return new RbacPrincipal(email, Collections.unmodifiableList(authorities));
-    }
+    @Override public String getId()      { return username; }
 
-    /** The JWT subject — typically the user's e-mail address. */
-    public String getEmail() {
-        return email;
-    }
-
-    /** Authority names embedded in the token at the time it was issued. */
-    public List<String> getAuthorities() {
-        return authorities;
-    }
 
     @Override
-    public String toString() {
-        return email;
+    public @Nullable String getPassword() {
+        return null;
     }
-}
 
+}

@@ -3,6 +3,7 @@ package com.nicouema.authorization.rbac.service;
 import com.nicouema.authorization.rbac.config.JwtProperties;
 import com.nicouema.authorization.rbac.model.RbacUser;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -36,7 +37,7 @@ public class JwtServiceImpl implements JwtService {
 
         return Jwts.builder()
                 .claims(extraClaims)
-                .subject(user.getEmail())
+                .subject(user.getId())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + properties.getExpirationMs()))
                 .signWith(secretKey())
@@ -46,7 +47,7 @@ public class JwtServiceImpl implements JwtService {
     // ------------------------------------------------------------------ parse
 
     @Override
-    public String extractEmail(String token) {
+    public String extractSubject(String token) {
         return parseClaims(token).getSubject();
     }
 
