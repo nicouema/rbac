@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -73,7 +74,7 @@ public class SecurityConfig {
             JwtAuthenticationFilter jwtFilter,
             EndpointsConfiguration endpointsConfiguration,
             RbacAuthenticationEntryPoint authEntryPoint,
-            RbacAccessDeniedHandler accessDeniedHandler) throws Exception {
+            RbacAccessDeniedHandler accessDeniedHandler) {
 
         http
             .csrf(AbstractHttpConfigurer::disable)
@@ -86,7 +87,9 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(authEntryPoint)
                 .accessDeniedHandler(accessDeniedHandler))
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll());
 
         return http.build();
     }
